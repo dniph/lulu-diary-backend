@@ -28,6 +28,18 @@ namespace lulu_diary_backend
             // Add OpenAPI
             builder.Services.AddOpenApi();
 
+            // Add CORS
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000") 
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                });
+            });
+
+
             // Build, setup and run app
             var app = builder.Build();
 
@@ -38,8 +50,10 @@ namespace lulu_diary_backend
             }
 
             app.UseHttpsRedirection();
+            app.UseCors("AllowFrontend");
             app.UseAuthorization();
             app.MapControllers();
+
 
             app.Run();
         }
