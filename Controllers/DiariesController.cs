@@ -19,7 +19,7 @@ namespace lulu_diary_backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Diary>>> GetDiaries()
         {
-            return await _context.Diaries.ToListAsync();
+            return await _context.Diaries.OrderBy(p => p.Id).ToListAsync();
         }
 
         // GET: api/diaries/5
