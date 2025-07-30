@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using lulu_diary_backend.Models.Database;
 using Microsoft.EntityFrameworkCore;
 using lulu_diary_backend.Context;
+using lulu_diary_backend.Models.API;
 namespace lulu_diary_backend.Controllers
 {
     [Route("api/[controller]")]
@@ -38,24 +39,44 @@ namespace lulu_diary_backend.Controllers
 
         // POST: api/diaries
         [HttpPost]
-        public async Task<ActionResult<Diary>> PostDiary(Diary diary)
+        public async Task<ActionResult<Diary>> PostDiary(DiaryDto diary)
         {
-            _context.Diaries.Add(diary);
+            var newDiary = new Diary
+            {
+                Title = diary.Title,
+                Content = diary.Content,
+                Username = diary.Username,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.Diaries.Add(newDiary);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetDiary", new { id = diary.Id }, diary);
+            return Ok(newDiary);
         }
 
-        // PUT: api/diaries/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutDiary(int id, Diary diary)
+        // PATCH: api/diaries/5
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchDiary(int id, DiaryUpdateDto diaryUpdate)
         {
-            if (id != diary.Id)
+            var existingDiary = await _context.Diaries.FindAsync(id);
+            if (existingDiary == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
-            _context.Entry(diary).State = EntityState.Modified;
+            // Update only the provided fields
+            if (!string.IsNullOrEmpty(diaryUpdate.Title))
+            {
+                existingDiary.Title = diaryUpdate.Title;
+            }
+            
+            if (!string.IsNullOrEmpty(diaryUpdate.Content))
+            {
+                existingDiary.Content = diaryUpdate.Content;
+            }
+
+            existingDiary.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -73,7 +94,7 @@ namespace lulu_diary_backend.Controllers
                 }
             }
 
-            return NoContent();
+            return Ok(existingDiary);
         }
 
         // DELETE: api/diaries/5
