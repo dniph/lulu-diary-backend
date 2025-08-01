@@ -12,5 +12,7 @@ namespace lulu_diary_backend.Context
         public DbSet<Diary> Diaries { get; set; }
 
         public DbSet<Profile> Profiles { get; set; }
+
+        public DbSet<Comment> Comments { get; set; }
     }
 }
