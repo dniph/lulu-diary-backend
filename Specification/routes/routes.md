@@ -1,4 +1,22 @@
-# 📘 **API Endpoint Overview**
+# 📘 *## 👤 **Profiles Controller**  [🔗 Profile Model]
+
+```http
+POST   /profiles
+GET    /profiles/{username}
+PATCH  /profiles/{username}
+```
+
+**Description:**
+
+* `POST`: Create a new profile (one per authenticated user).
+* `GET`: Retrieve profile by username.
+* `PATCH`: Update the authenticated user's information.
+
+**Access Rules:**
+
+* 🔒 `POST` requires authentication and can only create one profile per user.
+* ✅ `GET` is public (can be accessed by anyone).
+* 🔒 `PATCH` is restricted to the authenticated user.erview**
 
 Each section corresponds to a functional controller. For detailed information on the schema and logic, refer to the associated model or controller documentation linked next to each heading.
 
