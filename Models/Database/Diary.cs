@@ -9,14 +9,16 @@ namespace lulu_diary_backend.Models.Database
         public int Id { get; set; }
 
         [Required]
-        public string Title { get; set; }
-
-        public string Content { get; set; }
+        public required int ProfileId { get; set; } // Owner of the diary (foreign key to Profiles)
 
         [Required]
-        public string Username { get; set; }  
+        public required string Title { get; set; }
 
-        public bool IsPublic { get; set; } = false;
+        [Required]
+        public required string Content { get; set; }
+
+        [Required]
+        public string Visibility { get; set; } = "public"; // One of: "public", "friends-only", "private"
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

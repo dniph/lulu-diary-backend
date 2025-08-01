@@ -23,29 +23,36 @@ namespace lulu_diary_backend.Repositories
         }
 
         /// <summary>
-        /// Gets all diaries from the database.
+        /// Gets all diaries for a specific profile.
         /// </summary>
-        /// <returns>List of diaries.</returns>
-        public async Task<IList<Diary>> GetDiariesAsync()
+        /// <param name="profileId">Profile ID.</param>
+        /// <returns>List of diaries for the profile.</returns>
+        public async Task<IList<Diary>> GetDiariesByProfileAsync(int profileId)
         {
-            return await _context.Diaries.OrderBy(d => d.Id).ToListAsync();
+            return await _context.Diaries
+                .Where(d => d.ProfileId == profileId)
+                .OrderByDescending(d => d.CreatedAt)
+                .ToListAsync();
         }
 
         /// <summary>
         /// Inserts a new diary into the database.
         /// </summary>
         /// <param name="dto">Diary data transfer object.</param>
+        /// <param name="profileId">Profile ID of the diary owner.</param>
         /// <returns>The created diary.</returns>
-        public async Task<Diary> InsertDiaryAsync(DiaryDto dto)
+        public async Task<Diary> InsertDiaryAsync(DiaryDto dto, int profileId)
         {
             var diary = new Diary()
             {
                 Title = dto.Title,
                 Content = dto.Content,
-                Username = dto.Username,
+                Visibility = dto.Visibility,
+                ProfileId = profileId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
+
             await _context.Diaries.AddAsync(diary);
             await _context.SaveChangesAsync();
             return diary;
@@ -67,34 +74,61 @@ namespace lulu_diary_backend.Repositories
         }
 
         /// <summary>
+        /// Gets a diary by its ID and profile ID.
+        /// </summary>
+        /// <param name="id">Diary ID.</param>
+        /// <param name="profileId">Profile ID.</param>
+        /// <returns>Diary if found and belongs to profile, otherwise null.</returns>
+        public async Task<Diary?> GetDiaryByProfileAsync(int id, int profileId)
+        {
+            var diary = await _context.Diaries
+                .FirstOrDefaultAsync(d => d.Id == id && d.ProfileId == profileId);
+            
+            if (diary == null)
+            {
+                _logger.LogWarning("Diary with ID {DiaryId} not found for profile {ProfileId}.", id, profileId);
+            }
+            return diary;
+        }
+
+        /// <summary>
         /// Updates an existing diary in the database.
+        /// Authorization should be handled by middleware before reaching this method.
         /// </summary>
         /// <param name="id">Diary ID.</param>
         /// <param name="dto">Diary update data transfer object.</param>
+        /// <param name="profileId">Profile ID for verification.</param>
         /// <returns>Updated diary if found, otherwise null.</returns>
-        public async Task<Diary?> UpdateDiaryAsync(int id, DiaryUpdateDto dto)
+        public async Task<Diary?> UpdateDiaryAsync(int id, DiaryUpdateDto dto, int profileId)
         {
-            var existingDiary = await _context.Diaries.FindAsync(id);
+            var existingDiary = await _context.Diaries
+                .FirstOrDefaultAsync(d => d.Id == id && d.ProfileId == profileId);
+            
             if (existingDiary == null)
             {
-                _logger.LogWarning("Diary update failed: diary with ID {DiaryId} not found.", id);
+                _logger.LogWarning("Diary update failed: diary with ID {DiaryId} not found for profile {ProfileId}.", id, profileId);
                 return null;
             }
-            
+
             // Update only the provided fields
             if (dto.Title != null)
             {
                 existingDiary.Title = dto.Title;
             }
-            
+
             if (dto.Content != null)
             {
                 existingDiary.Content = dto.Content;
             }
 
+            if (dto.Visibility != null)
+            {
+                existingDiary.Visibility = dto.Visibility;
+            }
+
             existingDiary.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            
+
             return existingDiary;
         }
 
@@ -102,17 +136,21 @@ namespace lulu_diary_backend.Repositories
         /// Deletes a diary from the database by its ID.
         /// </summary>
         /// <param name="id">Diary ID.</param>
+        /// <param name="profileId">Profile ID for verification.</param>
         /// <returns>Deleted diary if found, otherwise null.</returns>
-        public async Task<Diary?> DeleteDiaryAsync(int id)
+        public async Task<Diary?> DeleteDiaryAsync(int id, int profileId)
         {
-            var diary = await _context.Diaries.FindAsync(id);
+            var diary = await _context.Diaries
+                .FirstOrDefaultAsync(d => d.Id == id && d.ProfileId == profileId);
+            
             if (diary != null)
             {
                 _context.Diaries.Remove(diary);
                 await _context.SaveChangesAsync();
                 return diary;
             }
-            _logger.LogWarning("Diary deletion failed: diary with ID {DiaryId} not found.", id);
+            
+            _logger.LogWarning("Diary deletion failed: diary with ID {DiaryId} not found for profile {ProfileId}.", id, profileId);
             return null;
         }
     }
