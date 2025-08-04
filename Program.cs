@@ -26,6 +26,7 @@ namespace lulu_diary_backend
             builder.Services.AddScoped<CommentsRepository>();
             builder.Services.AddScoped<DiaryReactionsRepository>();
             builder.Services.AddScoped<CommentReactionsRepository>();
+            builder.Services.AddScoped<FollowersRepository>();
 
             // Add web controllers
             builder.Services.AddControllers();
