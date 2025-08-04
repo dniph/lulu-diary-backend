@@ -8,7 +8,7 @@
 
 ```json
 {
-  "reactionType": "like" // Required, type of reaction (e.g., "like", "love", etc.)
+  "reactionType": "like" // Required, type of reaction: "like", "love", "laugh", "sad", "angry", "surprised"
 }
 ```
 

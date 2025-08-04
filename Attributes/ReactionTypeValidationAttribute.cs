@@ -4,7 +4,7 @@ namespace lulu_diary_backend.Attributes
 {
     public class ReactionTypeValidationAttribute : ValidationAttribute
     {
-        private static readonly string[] ValidReactionTypes = { "like", "love", "hate" };
+        private static readonly string[] ValidReactionTypes = { "like", "love", "laugh", "sad", "angry", "surprised" };
 
         public override bool IsValid(object? value)
         {

@@ -141,6 +141,7 @@ POST /profiles/{username}/diaries/{diaryId}/unreact
 
 POST /profiles/{username}/diaries/{diaryId}/comments/{commentId}/react
 POST /profiles/{username}/diaries/{diaryId}/comments/{commentId}/unreact
+GET api//profiles/{username}/diaries/{diaryId}/comments/{commentId}/reactions
 ```
 
 **Description:**

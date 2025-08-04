@@ -7,6 +7,6 @@ namespace lulu_diary_backend.Models.API
     {
         [Required]
         [ReactionTypeValidation]
-        public required string ReactionType { get; set; } // Must be "like", "love", or "hate"
+        public required string ReactionType { get; set; } // Must be "like", "love", "laugh", "sad", "angry", or "surprised"
     }
 }

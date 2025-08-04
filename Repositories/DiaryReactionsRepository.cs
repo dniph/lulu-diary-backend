@@ -58,7 +58,7 @@ namespace lulu_diary_backend.Repositories
         public async Task<DiaryReaction> AddOrUpdateReactionAsync(DiaryReactionDto dto, int diaryId, int profileId)
         {
             // Validate reaction type (additional safety check)
-            var validReactionTypes = new[] { "like", "love", "hate" };
+            var validReactionTypes = new[] { "like", "love", "laugh", "sad", "angry", "surprised" };
             if (!validReactionTypes.Contains(dto.ReactionType.ToLower()))
             {
                 throw new ArgumentException($"Invalid reaction type '{dto.ReactionType}'. Must be one of: {string.Join(", ", validReactionTypes)}");

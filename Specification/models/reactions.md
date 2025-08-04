@@ -7,7 +7,7 @@ DiaryReaction {
   id: int;                // Unique identifier (auto-generated)
   diaryId: int;           // Diary being reacted to
   profileId: int;         // Profile who reacted (foreign key to Profiles)
-  reactionType: string;   // Reaction type (e.g., "like", "love", etc.)
+  reactionType: string;   // Reaction type: "like", "love", "laugh", "sad", "angry", "surprised"
   createdAt: datetime;    // Reaction timestamp (UTC)
 }
 ```
