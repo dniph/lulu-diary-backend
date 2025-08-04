@@ -2,7 +2,7 @@
 
 ## Supported Reaction Types
 
-The diary reactions system supports the following 6 reaction types:
+The diary and comment reactions system supports the following 6 reaction types:
 
 | Type | Emoji | Label | Description |
 |------|-------|-------|-------------|
@@ -28,7 +28,21 @@ const reactionTypes = [
 
 ## API Usage
 
-### Add/Update Reaction
+### Diary Reactions
+```http
+POST /api/profiles/{username}/diaries/{diaryId}/react
+POST /api/profiles/{username}/diaries/{diaryId}/unreact
+GET  /api/profiles/{username}/diaries/{diaryId}/reactions
+```
+
+### Comment Reactions
+```http
+POST /api/profiles/{username}/diaries/{diaryId}/comments/{commentId}/react
+POST /api/profiles/{username}/diaries/{diaryId}/comments/{commentId}/unreact
+GET  /api/profiles/{username}/diaries/{diaryId}/comments/{commentId}/reactions
+```
+
+### Request Body Example
 ```http
 POST /api/profiles/{username}/diaries/{diaryId}/react
 Content-Type: application/json

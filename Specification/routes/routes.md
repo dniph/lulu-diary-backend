@@ -136,22 +136,28 @@ DELETE /profiles/{username}/diaries/{diaryId}/comments/{commentId}
 ## ❤️ **Reactions Controller**  [🔗 Reaction Model]
 
 ```http
-POST /profiles/{username}/diaries/{diaryId}/react
-POST /profiles/{username}/diaries/{diaryId}/unreact
+POST /api/profiles/{username}/diaries/{diaryId}/react
+POST /api/profiles/{username}/diaries/{diaryId}/unreact
+GET  /api/profiles/{username}/diaries/{diaryId}/reactions
 
-POST /profiles/{username}/diaries/{diaryId}/comments/{commentId}/react
-POST /profiles/{username}/diaries/{diaryId}/comments/{commentId}/unreact
-GET api//profiles/{username}/diaries/{diaryId}/comments/{commentId}/reactions
+POST /api/profiles/{username}/diaries/{diaryId}/comments/{commentId}/react
+POST /api/profiles/{username}/diaries/{diaryId}/comments/{commentId}/unreact
+GET  /api/profiles/{username}/diaries/{diaryId}/comments/{commentId}/reactions
 ```
+
+
 
 **Description:**
 
 * React to or remove a reaction from a diary or a comment by username.
+* View all reactions on a diary or comment.
+* Supported reaction types: "like", "love", "laugh", "sad", "angry", "surprised".
 
 **Access Rules:**
 
-* 🔒 All endpoints require authentication.
-* 🚫 Profiles can react only once per target (per type).
+* 🔒 All `POST` endpoints require authentication.
+* ✅ `GET` endpoints are public but respect the diary's visibility level.
+* 🚫 Profiles can react only once per target (replaces existing reaction).
 * 🧑‍⚖️ Reactions respect the visibility and access control of the target (diary or comment).
 
 ---

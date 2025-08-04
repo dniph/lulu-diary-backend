@@ -1,0 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using lulu_diary_backend.Attributes;
+
+namespace lulu_diary_backend.Models.API
+{
+    public class CommentReactionDto
+    {
+        [Required]
+        [ReactionTypeValidation]
+        public required string ReactionType { get; set; } // Must be "like", "love", "laugh", "sad", "angry", or "surprised"
+    }
+}
