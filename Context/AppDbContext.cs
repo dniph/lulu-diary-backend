@@ -20,5 +20,9 @@ namespace lulu_diary_backend.Context
         public DbSet<CommentReaction> CommentReactions { get; set; }
 
         public DbSet<Follower> Followers { get; set; }
+
+        public DbSet<Friend> Friends { get; set; }
+
+        public DbSet<FriendRequest> FriendRequests { get; set; }
     }
 }
