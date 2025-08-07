@@ -89,6 +89,16 @@ namespace lulu_diary_backend.Repositories
         }
 
         /// <summary>
+        /// Gets a profile by user ID.
+        /// </summary>
+        /// <param name="userId">User ID.</param>
+        /// <returns>Profile if found, otherwise null.</returns>
+        public async Task<Profile?> GetProfileByUserIdAsync(string userId)
+        {
+            return await _context.Profiles.FirstOrDefaultAsync(p => p.UserId == userId);
+        }
+
+        /// <summary>
         /// Updates an existing profile in the database.
         /// Authorization should be handled by middleware before reaching this method.
         /// </summary>

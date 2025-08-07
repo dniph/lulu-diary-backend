@@ -1,7 +1,12 @@
 
 using lulu_diary_backend.Context;
+using lulu_diary_backend.Middleware;
 using lulu_diary_backend.Repositories;
+using lulu_diary_backend.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace lulu_diary_backend
 {
@@ -30,6 +35,9 @@ namespace lulu_diary_backend
             builder.Services.AddScoped<FriendsRepository>();
             builder.Services.AddScoped<FriendRequestsRepository>();
 
+            // Add UserContext service
+            builder.Services.AddScoped<UserContext>();
+
             // Add web controllers
             builder.Services.AddControllers();
 
@@ -47,6 +55,22 @@ namespace lulu_diary_backend
                 });
             });
 
+            // Add Authentication
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    var key = builder.Configuration["JWT_SECRET"]
+                        ?? throw new ArgumentNullException("Symmetric Security key is missing");
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+                    };
+                });
 
             // Build, setup and run app
             var app = builder.Build();
@@ -59,6 +83,8 @@ namespace lulu_diary_backend
 
             app.UseHttpsRedirection();
             app.UseCors("AllowFrontend");
+            app.UseAuthentication();
+            app.UseMiddleware<UserContextMiddleware>();
             app.UseAuthorization();
             app.MapControllers();
 
