@@ -1,6 +1,7 @@
 using lulu_diary_backend.Models.API;
 using lulu_diary_backend.Models.Database;
 using lulu_diary_backend.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace lulu_diary_backend.Controllers
@@ -10,14 +11,16 @@ namespace lulu_diary_backend.Controllers
     public class ProfilesController : ControllerBase
     {
         private readonly ProfilesRepository _repository;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProfilesController"/> class.
         /// </summary>
         /// <param name="repository">Profiles repository.</param>
-        public ProfilesController(ProfilesRepository repository)
+        public ProfilesController(ProfilesRepository repository, IAuthorizationService authorizationService)
         {
             _repository = repository;
+            _authorizationService = authorizationService;
         }
 
         /// <summary>
@@ -73,6 +76,7 @@ namespace lulu_diary_backend.Controllers
         /// <param name="profile">Profile update data transfer object.</param>
         /// <returns>Updated profile if found, otherwise NotFound.</returns>
         [HttpPatch("{username}")]
+        [Authorize]
         public async Task<IActionResult> UpdateAsync(string username, ProfileUpdateDto profile)
         {
             if (profile == null)
@@ -80,16 +84,25 @@ namespace lulu_diary_backend.Controllers
                 return BadRequest();
             }
 
-            // TODO: Get userId from middleware-injected user context
-            var userId = "placeholder-user-id";
-
-            var existingProfile = await _repository.UpdateProfileAsync(username, profile, userId);
+            var existingProfile = await _repository.GetProfileByUsernameAsync(username);
             if (existingProfile == null)
             {
                 return NotFound();
             }
 
-            return Ok(existingProfile);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, existingProfile, "IsOwner");
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbid();
+            }
+
+            var updatedProfile = await _repository.UpdateProfileAsync(username, profile);
+            if (updatedProfile == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(updatedProfile);
         }
     }
 }

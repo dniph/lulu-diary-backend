@@ -104,9 +104,8 @@ namespace lulu_diary_backend.Repositories
         /// </summary>
         /// <param name="username">Profile username.</param>
         /// <param name="dto">Profile update data transfer object.</param>
-        /// <param name="userId">User ID from authentication system.</param>
         /// <returns>Updated profile if found, otherwise null.</returns>
-        public async Task<Profile?> UpdateProfileAsync(string username, ProfileUpdateDto dto, string userId)
+        public async Task<Profile?> UpdateProfileAsync(string username, ProfileUpdateDto dto)
         {
             var existingProfile = await _context.Profiles.FirstOrDefaultAsync(p => p.Username == username);
             if (existingProfile == null)

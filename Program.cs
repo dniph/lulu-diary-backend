@@ -1,9 +1,11 @@
 
+using lulu_diary_backend.Authorization;
 using lulu_diary_backend.Context;
 using lulu_diary_backend.Middleware;
 using lulu_diary_backend.Repositories;
 using lulu_diary_backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -38,6 +40,9 @@ namespace lulu_diary_backend
             // Add UserContext service
             builder.Services.AddScoped<UserContext>();
 
+            // Add Authorization Handlers
+            builder.Services.AddScoped<IAuthorizationHandler, IsOwnerAuthorizationHandler>();
+
             // Add web controllers
             builder.Services.AddControllers();
 
@@ -71,6 +76,10 @@ namespace lulu_diary_backend
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
                     };
                 });
+
+            // Add Authorization Policies
+            builder.Services.AddAuthorizationBuilder()
+                .AddPolicy("IsOwner", policy => policy.Requirements.Add(new IsOwnerRequirement()));
 
             // Build, setup and run app
             var app = builder.Build();
