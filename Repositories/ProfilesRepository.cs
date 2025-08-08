@@ -32,48 +32,6 @@ namespace lulu_diary_backend.Repositories
         }
 
         /// <summary>
-        /// Inserts a new profile into the database.
-        /// </summary>
-        /// <param name="dto">Profile data transfer object.</param>
-        /// <param name="userId">User ID from authentication system.</param>
-        /// <returns>The created profile.</returns>
-        public async Task<Profile> InsertProfileAsync(ProfileDto dto, string userId)
-        {
-            // Check if user already has a profile
-            var existingProfile = await _context.Profiles.FirstOrDefaultAsync(p => p.UserId == userId);
-            if (existingProfile != null)
-            {
-                _logger.LogWarning("Profile creation failed: user {UserId} already has a profile.", userId);
-                throw new InvalidOperationException("User already has a profile.");
-            }
-
-            // Check if username is already taken
-            var usernameExists = await _context.Profiles.AnyAsync(p => p.Username == dto.Username);
-            if (usernameExists)
-            {
-                _logger.LogWarning("Profile creation failed: username {Username} already exists.", dto.Username);
-                throw new InvalidOperationException("Username already exists.");
-            }
-
-            var profile = new Profile()
-            {
-                Username = dto.Username,
-                DisplayName = dto.DisplayName,
-                AvatarUrl = dto.AvatarUrl,
-                DiaryVisibility = dto.DiaryVisibility,
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                FriendsCount = 0,
-                FollowersCount = 0,
-                FollowingCount = 0
-            };
-
-            await _context.Profiles.AddAsync(profile);
-            await _context.SaveChangesAsync();
-            return profile;
-        }
-
-        /// <summary>
         /// Gets a profile by username.
         /// </summary>
         /// <param name="username">Profile username.</param>

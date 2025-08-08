@@ -27,7 +27,6 @@ namespace lulu_diary_backend
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // Add repositories
-            builder.Services.AddScoped<ProductsRepository>();
             builder.Services.AddScoped<DiariesRepository>();
             builder.Services.AddScoped<ProfilesRepository>();
             builder.Services.AddScoped<CommentsRepository>();

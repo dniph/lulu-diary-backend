@@ -1,6 +1,8 @@
 using lulu_diary_backend.Models.API;
 using lulu_diary_backend.Models.Database;
 using lulu_diary_backend.Repositories;
+using lulu_diary_backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace lulu_diary_backend.Controllers;
@@ -11,24 +13,28 @@ public class FriendRequestsController : ControllerBase
 {
     private readonly FriendRequestsRepository _friendRequestsRepository;
     private readonly ProfilesRepository _profilesRepository;
+    private readonly UserContext _userContext;
     private readonly ILogger<FriendRequestsController> _logger;
 
     public FriendRequestsController(
         FriendRequestsRepository friendRequestsRepository,
         ProfilesRepository profilesRepository,
+        UserContext userContext,
         ILogger<FriendRequestsController> logger)
     {
         _friendRequestsRepository = friendRequestsRepository;
         _profilesRepository = profilesRepository;
+        _userContext = userContext;
         _logger = logger;
     }
 
     [HttpGet("incoming")]
+    [Authorize]
     public async Task<ActionResult<List<FriendRequestDto>>> GetIncomingRequests()
     {
         try
         {
-            int profileId = 1;
+            int profileId = _userContext.CurrentUserProfile.Id;
             var requests = await _friendRequestsRepository.GetIncomingRequestsAsync(profileId);
             return Ok(requests);
         }
@@ -40,11 +46,12 @@ public class FriendRequestsController : ControllerBase
     }
 
     [HttpGet("outgoing")]
+    [Authorize]
     public async Task<ActionResult<List<FriendRequestDto>>> GetOutgoingRequests()
     {
         try
         {
-            int profileId = 1;
+            int profileId = _userContext.CurrentUserProfile.Id;
             var requests = await _friendRequestsRepository.GetOutgoingRequestsAsync(profileId);
             return Ok(requests);
         }
@@ -56,11 +63,12 @@ public class FriendRequestsController : ControllerBase
     }
 
     [HttpPost("send")]
+    [Authorize]
     public async Task<ActionResult<FriendRequestDto>> CreateFriendRequest(FriendRequestDto friendRequest)
     {
         try
         {
-            int profileId = 1; // This should be replaced with the actual profile ID from the authenticated user context
+            int profileId = _userContext.CurrentUserProfile.Id;
 
             var requestedProfile = await _profilesRepository.GetProfileByUsernameAsync(friendRequest.RequestedUsername);
             if (requestedProfile == null)
@@ -88,11 +96,12 @@ public class FriendRequestsController : ControllerBase
     }
 
     [HttpPost("reject/{requestId}")]
+    [Authorize]
     public async Task<IActionResult> RejectFriendRequest(int requestId)
     {
         try
         {
-            int profileId = 1; // This should be replaced with the actual profile ID from the authenticated user context
+            int profileId = _userContext.CurrentUserProfile.Id;
             
             // First, get the friend request to validate the user can reject it
             var friendRequest = await _friendRequestsRepository.GetFriendRequestAsync(requestId);
@@ -123,11 +132,12 @@ public class FriendRequestsController : ControllerBase
     }
     
     [HttpPost("accept/{requestId}")]
+    [Authorize]
     public async Task<IActionResult> AcceptFriendRequest(int requestId)
     {
         try
         {
-            int profileId = 1; // This should be replaced with the actual profile ID from the authenticated user context
+            int profileId = _userContext.CurrentUserProfile.Id;
             
             // First, get the friend request to validate the user can accept it
             var friendRequest = await _friendRequestsRepository.GetFriendRequestAsync(requestId);

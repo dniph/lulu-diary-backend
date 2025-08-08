@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using lulu_diary_backend.Models.API;
 using lulu_diary_backend.Repositories;
+using lulu_diary_backend.Services;
 
 namespace lulu_diary_backend.Controllers
 {
@@ -10,26 +12,32 @@ namespace lulu_diary_backend.Controllers
     {
         private readonly DiariesRepository _repository;
         private readonly ProfilesRepository _profilesRepository;
+        private readonly UserContext _userContext;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiariesController"/> class.
         /// </summary>
         /// <param name="repository">Diaries repository.</param>
         /// <param name="profilesRepository">Profiles repository for username lookups.</param>
-        public DiariesController(DiariesRepository repository, ProfilesRepository profilesRepository)
+        /// <param name="userContext">User context service.</param>
+        /// <param name="authorizationService">Authorization service.</param>
+        public DiariesController(DiariesRepository repository, ProfilesRepository profilesRepository, UserContext userContext, IAuthorizationService authorizationService)
         {
             _repository = repository;
             _profilesRepository = profilesRepository;
+            _userContext = userContext;
+            _authorizationService = authorizationService;
         }
 
         /// <summary>
         /// Creates a new diary for the specified profile.
-        /// Middleware should ensure user is authorized to create diaries for this profile.
         /// </summary>
         /// <param name="username">Profile username.</param>
         /// <param name="diary">Diary data transfer object.</param>
         /// <returns>Created diary.</returns>
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateAsync(string username, DiaryDto diary)
         {
             if (diary == null)
@@ -42,6 +50,13 @@ namespace lulu_diary_backend.Controllers
             if (profile == null)
             {
                 return NotFound(new { message = "Profile not found." });
+            }
+
+            // Check if user is authorized to create diaries for this profile
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, profile, "IsOwner");
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbid();
             }
 
             try
@@ -101,13 +116,13 @@ namespace lulu_diary_backend.Controllers
 
         /// <summary>
         /// Updates an existing diary.
-        /// Middleware should ensure user is authorized to update this diary.
         /// </summary>
         /// <param name="username">Profile username.</param>
         /// <param name="diaryId">Diary ID.</param>
         /// <param name="diary">Diary update data transfer object.</param>
         /// <returns>Updated diary if found, otherwise NotFound.</returns>
         [HttpPatch("{diaryId}")]
+        [Authorize]
         public async Task<IActionResult> UpdateAsync(string username, int diaryId, DiaryUpdateDto diary)
         {
             if (diary == null)
@@ -122,6 +137,13 @@ namespace lulu_diary_backend.Controllers
                 return NotFound(new { message = "Profile not found." });
             }
 
+            // Check if user is authorized to update this profile's diaries
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, profile, "IsOwner");
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbid();
+            }
+
             var existingDiary = await _repository.UpdateDiaryAsync(diaryId, diary, profile.Id);
             if (existingDiary == null)
             {
@@ -133,12 +155,12 @@ namespace lulu_diary_backend.Controllers
 
         /// <summary>
         /// Deletes a diary by ID.
-        /// Middleware should ensure user is authorized to delete this diary.
         /// </summary>
         /// <param name="username">Profile username.</param>
         /// <param name="diaryId">Diary ID.</param>
         /// <returns>NoContent if deleted, otherwise NotFound.</returns>
         [HttpDelete("{diaryId}")]
+        [Authorize]
         public async Task<IActionResult> DeleteAsync(string username, int diaryId)
         {
             // Get profile by username
@@ -146,6 +168,13 @@ namespace lulu_diary_backend.Controllers
             if (profile == null)
             {
                 return NotFound(new { message = "Profile not found." });
+            }
+
+            // Check if user is authorized to delete this profile's diaries
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, profile, "IsOwner");
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbid();
             }
 
             var diary = await _repository.DeleteDiaryAsync(diaryId, profile.Id);

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using lulu_diary_backend.Models.API;
 using lulu_diary_backend.Repositories;
+using lulu_diary_backend.Services;
 
 namespace lulu_diary_backend.Controllers
 {
@@ -10,18 +12,22 @@ namespace lulu_diary_backend.Controllers
     {
         private readonly FollowersRepository _followersRepository;
         private readonly ProfilesRepository _profilesRepository;
+        private readonly UserContext _userContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FollowersController"/> class.
         /// </summary>
         /// <param name="followersRepository">Followers repository.</param>
         /// <param name="profilesRepository">Profiles repository for username lookups.</param>
+        /// <param name="userContext">User context service.</param>
         public FollowersController(
             FollowersRepository followersRepository,
-            ProfilesRepository profilesRepository)
+            ProfilesRepository profilesRepository,
+            UserContext userContext)
         {
             _followersRepository = followersRepository;
             _profilesRepository = profilesRepository;
+            _userContext = userContext;
         }
 
         /// <summary>
@@ -69,6 +75,7 @@ namespace lulu_diary_backend.Controllers
         /// <param name="username">Username of the profile to follow.</param>
         /// <returns>Created follow relationship.</returns>
         [HttpPost("follow")]
+        [Authorize]
         public async Task<IActionResult> FollowAsync(string username)
         {
             // Get profile by username (the profile to be followed)
@@ -80,8 +87,8 @@ namespace lulu_diary_backend.Controllers
 
             try
             {
-                // TODO: Get actual followerId from middleware-injected user context
-                var followerId = 1; // placeholder - should come from authenticated user
+                // Get current user's profile ID from UserContext
+                var followerId = _userContext.CurrentUserProfile!.Id;
 
                 var result = await _followersRepository.FollowProfileAsync(profileToFollow.Id, followerId);
                 return Ok(result);
@@ -103,6 +110,7 @@ namespace lulu_diary_backend.Controllers
         /// <param name="username">Username of the profile to unfollow.</param>
         /// <returns>NoContent if unfollowed, otherwise NotFound.</returns>
         [HttpPost("unfollow")]
+        [Authorize]
         public async Task<IActionResult> UnfollowAsync(string username)
         {
             // Get profile by username (the profile to be unfollowed)
@@ -114,8 +122,8 @@ namespace lulu_diary_backend.Controllers
 
             try
             {
-                // TODO: Get actual followerId from middleware-injected user context
-                var followerId = 1; // placeholder - should come from authenticated user
+                // Get current user's profile ID from UserContext
+                var followerId = _userContext.CurrentUserProfile!.Id;
 
                 var result = await _followersRepository.UnfollowProfileAsync(profileToUnfollow.Id, followerId);
                 if (result == null)

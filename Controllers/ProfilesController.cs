@@ -1,5 +1,4 @@
 using lulu_diary_backend.Models.API;
-using lulu_diary_backend.Models.Database;
 using lulu_diary_backend.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,33 +20,6 @@ namespace lulu_diary_backend.Controllers
         {
             _repository = repository;
             _authorizationService = authorizationService;
-        }
-
-        /// <summary>
-        /// Creates a new profile for the authenticated user.
-        /// </summary>
-        /// <param name="profile">Profile data transfer object.</param>
-        /// <returns>Created profile.</returns>
-        [HttpPost]
-        public async Task<IActionResult> CreateAsync(ProfileDto profile)
-        {
-            if (profile == null)
-            {
-                return BadRequest();
-            }
-
-            // TODO: Get userId from middleware-injected user context
-            var userId = "placeholder-user-id";
-
-            try
-            {
-                var result = await _repository.InsertProfileAsync(profile, userId);
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
         }
 
         /// <summary>

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using lulu_diary_backend.Models.API;
 using lulu_diary_backend.Repositories;
+using lulu_diary_backend.Services;
 
 namespace lulu_diary_backend.Controllers
 {
@@ -11,6 +13,8 @@ namespace lulu_diary_backend.Controllers
         private readonly CommentsRepository _repository;
         private readonly ProfilesRepository _profilesRepository;
         private readonly DiariesRepository _diariesRepository;
+        private readonly UserContext _userContext;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CommentsController"/> class.
@@ -18,25 +22,31 @@ namespace lulu_diary_backend.Controllers
         /// <param name="repository">Comments repository.</param>
         /// <param name="profilesRepository">Profiles repository for username lookups.</param>
         /// <param name="diariesRepository">Diaries repository for diary validation.</param>
+        /// <param name="userContext">User context service.</param>
+        /// <param name="authorizationService">Authorization service.</param>
         public CommentsController(
             CommentsRepository repository, 
             ProfilesRepository profilesRepository,
-            DiariesRepository diariesRepository)
+            DiariesRepository diariesRepository,
+            UserContext userContext,
+            IAuthorizationService authorizationService)
         {
             _repository = repository;
             _profilesRepository = profilesRepository;
             _diariesRepository = diariesRepository;
+            _userContext = userContext;
+            _authorizationService = authorizationService;
         }
 
         /// <summary>
         /// Creates a new comment for the specified diary.
-        /// Middleware should ensure user is authenticated.
         /// </summary>
         /// <param name="username">Profile username.</param>
         /// <param name="diaryId">Diary ID.</param>
         /// <param name="comment">Comment data transfer object.</param>
         /// <returns>Created comment.</returns>
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateAsync(string username, int diaryId, CommentDto comment)
         {
             if (comment == null)
@@ -60,8 +70,8 @@ namespace lulu_diary_backend.Controllers
 
             try
             {
-                // TODO: Get actual profileId from middleware-injected user context
-                var commenterProfileId = 1; // placeholder - should come from authenticated user
+                // Get current user's profile ID from UserContext
+                var commenterProfileId = _userContext.CurrentUserProfile!.Id;
 
                 var result = await _repository.InsertCommentAsync(comment, diaryId, commenterProfileId);
                 return Ok(result);
@@ -101,13 +111,13 @@ namespace lulu_diary_backend.Controllers
 
         /// <summary>
         /// Deletes a comment by ID.
-        /// Middleware should ensure user is authorized to delete this comment.
         /// </summary>
         /// <param name="username">Profile username.</param>
         /// <param name="diaryId">Diary ID.</param>
         /// <param name="commentId">Comment ID.</param>
         /// <returns>NoContent if deleted, otherwise NotFound.</returns>
         [HttpDelete("{commentId}")]
+        [Authorize]
         public async Task<IActionResult> DeleteAsync(string username, int diaryId, int commentId)
         {
             // Get profile by username
@@ -122,6 +132,20 @@ namespace lulu_diary_backend.Controllers
             if (diary == null)
             {
                 return NotFound(new { message = "Diary not found." });
+            }
+
+            // Get the comment to verify it exists
+            var existingComment = await _repository.GetCommentByIdAsync(commentId);
+            if (existingComment == null)
+            {
+                return NotFound(new { message = "Comment not found." });
+            }
+
+            // Check if current user is the owner of the comment
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, existingComment, "IsOwner");
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbid();
             }
 
             var comment = await _repository.DeleteCommentAsync(commentId, diaryId);

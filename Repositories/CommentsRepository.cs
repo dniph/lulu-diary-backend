@@ -36,6 +36,16 @@ namespace lulu_diary_backend.Repositories
         }
 
         /// <summary>
+        /// Gets a comment by ID.
+        /// </summary>
+        /// <param name="commentId">Comment ID.</param>
+        /// <returns>Comment if found, otherwise null.</returns>
+        public async Task<Comment?> GetCommentByIdAsync(int commentId)
+        {
+            return await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
+        }
+
+        /// <summary>
         /// Inserts a new comment into the database.
         /// </summary>
         /// <param name="dto">Comment data transfer object.</param>

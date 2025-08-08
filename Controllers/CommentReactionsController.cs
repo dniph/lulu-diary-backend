@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using lulu_diary_backend.Models.API;
 using lulu_diary_backend.Repositories;
+using lulu_diary_backend.Services;
 
 namespace lulu_diary_backend.Controllers
 {
@@ -12,6 +14,7 @@ namespace lulu_diary_backend.Controllers
         private readonly ProfilesRepository _profilesRepository;
         private readonly DiariesRepository _diariesRepository;
         private readonly CommentsRepository _commentsRepository;
+        private readonly UserContext _userContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CommentReactionsController"/> class.
@@ -20,16 +23,19 @@ namespace lulu_diary_backend.Controllers
         /// <param name="profilesRepository">Profiles repository for username lookups.</param>
         /// <param name="diariesRepository">Diaries repository for diary validation.</param>
         /// <param name="commentsRepository">Comments repository for comment validation.</param>
+        /// <param name="userContext">User context service.</param>
         public CommentReactionsController(
             CommentReactionsRepository repository, 
             ProfilesRepository profilesRepository,
             DiariesRepository diariesRepository,
-            CommentsRepository commentsRepository)
+            CommentsRepository commentsRepository,
+            UserContext userContext)
         {
             _repository = repository;
             _profilesRepository = profilesRepository;
             _diariesRepository = diariesRepository;
             _commentsRepository = commentsRepository;
+            _userContext = userContext;
         }
 
         /// <summary>
@@ -42,6 +48,7 @@ namespace lulu_diary_backend.Controllers
         /// <param name="reaction">Reaction data transfer object.</param>
         /// <returns>Created or updated reaction.</returns>
         [HttpPost("react")]
+        [Authorize]
         public async Task<IActionResult> ReactAsync(string username, int diaryId, int commentId, CommentReactionDto reaction)
         {
             if (reaction == null)
@@ -72,8 +79,8 @@ namespace lulu_diary_backend.Controllers
 
             try
             {
-                // TODO: Get actual profileId from middleware-injected user context
-                var reactingProfileId = 1; // placeholder - should come from authenticated user
+                // Get current user's profile ID from UserContext
+                var reactingProfileId = _userContext.CurrentUserProfile!.Id;
 
                 var result = await _repository.AddOrUpdateReactionAsync(reaction, commentId, diaryId, reactingProfileId);
                 return Ok(result);
@@ -93,6 +100,7 @@ namespace lulu_diary_backend.Controllers
         /// <param name="commentId">Comment ID.</param>
         /// <returns>NoContent if removed, otherwise NotFound.</returns>
         [HttpPost("unreact")]
+        [Authorize]
         public async Task<IActionResult> UnreactAsync(string username, int diaryId, int commentId)
         {
             // Get profile by username
@@ -116,8 +124,8 @@ namespace lulu_diary_backend.Controllers
                 return NotFound(new { message = "Comment not found." });
             }
 
-            // TODO: Get actual profileId from middleware-injected user context
-            var reactingProfileId = 1; // placeholder - should come from authenticated user
+            // Get current user's profile ID from UserContext
+            var reactingProfileId = _userContext.CurrentUserProfile!.Id;
 
             var removedReaction = await _repository.RemoveReactionAsync(commentId, reactingProfileId);
             if (removedReaction == null)
