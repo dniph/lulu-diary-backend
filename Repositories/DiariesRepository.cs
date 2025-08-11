@@ -153,5 +153,125 @@ namespace lulu_diary_backend.Repositories
             _logger.LogWarning("Diary deletion failed: diary with ID {DiaryId} not found for profile {ProfileId}.", id, profileId);
             return null;
         }
+
+        /// <summary>
+        /// Gets public diaries for the public feed.
+        /// Considers both diary visibility and profile diaryVisibility settings.
+        /// </summary>
+        /// <param name="limit">Maximum number of diaries to return.</param>
+        /// <param name="offset">Number of diaries to skip for pagination.</param>
+        /// <returns>List of public diaries ordered by creation date (newest first).</returns>
+        public async Task<IList<Diary>> GetPublicDiariesAsync(int limit, int offset)
+        {
+            return await _context.Diaries
+                .Join(_context.Profiles, d => d.ProfileId, p => p.Id, (d, p) => new { Diary = d, Profile = p })
+                .Where(dp => 
+                    dp.Diary.Visibility == "public" &&           // Diary itself is public
+                    dp.Profile.DiaryVisibility == "public"       // Profile allows public diary visibility
+                )
+                .Select(dp => dp.Diary)
+                .OrderByDescending(d => d.CreatedAt)
+                .Skip(offset)
+                .Take(limit)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Gets diaries for the personalized feed of an authenticated user.
+        /// Considers both diary visibility and profile diaryVisibility settings.
+        /// Includes:
+        /// - Public diaries from profiles with public diaryVisibility
+        /// - Friends-only diaries from friends (if their diaryVisibility allows)
+        /// - Private diaries from the user's own profile (regardless of profile diaryVisibility)
+        /// </summary>
+        /// <param name="currentProfileId">Current user's profile ID.</param>
+        /// <param name="limit">Maximum number of diaries to return.</param>
+        /// <param name="offset">Number of diaries to skip for pagination.</param>
+        /// <returns>List of diaries for the personalized feed ordered by creation date (newest first).</returns>
+        public async Task<IList<Diary>> GetFeedDiariesAsync(int currentProfileId, int limit, int offset)
+        {
+            // Get friend profile IDs
+            var friendships = await _context.Friends
+                .Where(f => f.ProfileAId == currentProfileId || f.ProfileBId == currentProfileId)
+                .ToListAsync();
+
+            var friendProfileIds = friendships
+                .Select(f => f.ProfileAId == currentProfileId ? f.ProfileBId : f.ProfileAId)
+                .ToList();
+
+            // Build the query for the feed with profile diaryVisibility consideration
+            var query = _context.Diaries
+                .Join(_context.Profiles, d => d.ProfileId, p => p.Id, (d, p) => new { Diary = d, Profile = p })
+                .Where(dp =>
+                    // Public diaries from profiles with public diaryVisibility
+                    (dp.Diary.Visibility == "public" && dp.Profile.DiaryVisibility == "public") ||
+                    
+                    // Friends-only diaries from friends (if their profile allows diary visibility)
+                    (dp.Diary.Visibility == "friends-only" && 
+                     friendProfileIds.Contains(dp.Diary.ProfileId) && 
+                     dp.Profile.DiaryVisibility == "public") ||
+                    
+                    // Private diaries from own profile (always allowed regardless of profile diaryVisibility)
+                    (dp.Diary.Visibility == "private" && dp.Diary.ProfileId == currentProfileId)
+                )
+                .Select(dp => dp.Diary);
+
+            return await query
+                .OrderByDescending(d => d.CreatedAt)
+                .Skip(offset)
+                .Take(limit)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Gets the count of public diaries for pagination purposes.
+        /// Considers both diary visibility and profile diaryVisibility settings.
+        /// </summary>
+        /// <returns>Total count of public diaries.</returns>
+        public async Task<int> GetPublicDiariesCountAsync()
+        {
+            return await _context.Diaries
+                .Join(_context.Profiles, d => d.ProfileId, p => p.Id, (d, p) => new { Diary = d, Profile = p })
+                .Where(dp => 
+                    dp.Diary.Visibility == "public" &&           // Diary itself is public
+                    dp.Profile.DiaryVisibility == "public"       // Profile allows public diary visibility
+                )
+                .CountAsync();
+        }
+
+        /// <summary>
+        /// Gets the count of diaries for a user's personalized feed for pagination purposes.
+        /// Considers both diary visibility and profile diaryVisibility settings.
+        /// </summary>
+        /// <param name="currentProfileId">Current user's profile ID.</param>
+        /// <returns>Total count of diaries in the personalized feed.</returns>
+        public async Task<int> GetFeedDiariesCountAsync(int currentProfileId)
+        {
+            // Get friend profile IDs
+            var friendships = await _context.Friends
+                .Where(f => f.ProfileAId == currentProfileId || f.ProfileBId == currentProfileId)
+                .ToListAsync();
+
+            var friendProfileIds = friendships
+                .Select(f => f.ProfileAId == currentProfileId ? f.ProfileBId : f.ProfileAId)
+                .ToList();
+
+            // Count diaries in the feed with profile diaryVisibility consideration
+            return await _context.Diaries
+                .Join(_context.Profiles, d => d.ProfileId, p => p.Id, (d, p) => new { Diary = d, Profile = p })
+                .Where(dp =>
+                    // Public diaries from profiles with public diaryVisibility
+                    (dp.Diary.Visibility == "public" && dp.Profile.DiaryVisibility == "public") ||
+                    
+                    // Friends-only diaries from friends (if their profile allows diary visibility)
+                    (dp.Diary.Visibility == "friends-only" && 
+                    friendProfileIds.Contains(dp.Diary.ProfileId) && 
+                    dp.Profile.DiaryVisibility == "public") ||
+                    
+                    // Private diaries from own profile (always allowed regardless of profile diaryVisibility)
+                    (dp.Diary.Visibility == "private" && dp.Diary.ProfileId == currentProfileId)
+                )
+                .CountAsync();
+        }
     }
 }

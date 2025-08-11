@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using lulu_diary_backend.Models.API;
 using lulu_diary_backend.Repositories;
 using lulu_diary_backend.Services;
+using lulu_diary_backend.Models.Database;
 
 namespace lulu_diary_backend.Controllers
 {
@@ -14,6 +15,7 @@ namespace lulu_diary_backend.Controllers
         private readonly ProfilesRepository _profilesRepository;
         private readonly UserContext _userContext;
         private readonly IAuthorizationService _authorizationService;
+        private readonly FriendsRepository _friendsRepository;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DiariesController"/> class.
@@ -22,12 +24,14 @@ namespace lulu_diary_backend.Controllers
         /// <param name="profilesRepository">Profiles repository for username lookups.</param>
         /// <param name="userContext">User context service.</param>
         /// <param name="authorizationService">Authorization service.</param>
-        public DiariesController(DiariesRepository repository, ProfilesRepository profilesRepository, UserContext userContext, IAuthorizationService authorizationService)
+        /// <param name="friendsRepository">Friends repository for friendship checks.</param>
+        public DiariesController(DiariesRepository repository, ProfilesRepository profilesRepository, UserContext userContext, IAuthorizationService authorizationService, FriendsRepository friendsRepository)
         {
             _repository = repository;
             _profilesRepository = profilesRepository;
             _userContext = userContext;
             _authorizationService = authorizationService;
+            _friendsRepository = friendsRepository;
         }
 
         /// <summary>
@@ -71,10 +75,11 @@ namespace lulu_diary_backend.Controllers
         }
 
         /// <summary>
-        /// Gets all diaries for the specified profile.
+        /// Gets all diaries for the specified profile with visibility protection.
+        /// Applies profile diaryVisibility override and individual diary visibility rules.
         /// </summary>
         /// <param name="username">Profile username.</param>
-        /// <returns>List of diaries for the profile.</returns>
+        /// <returns>List of diaries for the profile that the current user can access.</returns>
         [HttpGet]
         public async Task<IActionResult> ListAsync(string username)
         {
@@ -85,16 +90,40 @@ namespace lulu_diary_backend.Controllers
                 return NotFound(new { message = "Profile not found." });
             }
 
-            var results = await _repository.GetDiariesByProfileAsync(profile.Id);
-            return Ok(results);
+            // Check if profile has private diaryVisibility
+            if (profile.DiaryVisibility == "private")
+            {
+                // Only the profile owner can see their diaries when diaryVisibility is private
+                if (_userContext.CurrentUserProfile?.Id != profile.Id)
+                {
+                    return Ok(new List<object>()); // Return empty list for unauthorized users
+                }
+            }
+
+            // Get all diaries for the profile
+            var allDiaries = await _repository.GetDiariesByProfileAsync(profile.Id);
+            
+            // Filter diaries based on current user's access rights
+            var accessibleDiaries = new List<object>();
+            
+            foreach (var diary in allDiaries)
+            {
+                if (await CanUserAccessDiary(diary, profile))
+                {
+                    accessibleDiaries.Add(diary);
+                }
+            }
+
+            return Ok(accessibleDiaries);
         }
 
         /// <summary>
-        /// Gets a specific diary by ID for the specified profile.
+        /// Gets a specific diary by ID for the specified profile with visibility protection.
+        /// Applies profile diaryVisibility override and individual diary visibility rules.
         /// </summary>
         /// <param name="username">Profile username.</param>
         /// <param name="diaryId">Diary ID.</param>
-        /// <returns>Diary if found, otherwise NotFound.</returns>
+        /// <returns>Diary if found and accessible, otherwise NotFound or Forbidden.</returns>
         [HttpGet("{diaryId}")]
         public async Task<IActionResult> GetAsync(string username, int diaryId)
         {
@@ -111,7 +140,58 @@ namespace lulu_diary_backend.Controllers
                 return NotFound();
             }
 
+            // Check if user can access this diary
+            if (!await CanUserAccessDiary(result, profile))
+            {
+                return NotFound(); // Return NotFound instead of Forbidden for privacy
+            }
+
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Checks if the current user can access a specific diary based on visibility rules.
+        /// </summary>
+        /// <param name="diary">The diary to check access for.</param>
+        /// <param name="profile">The profile that owns the diary.</param>
+        /// <returns>True if the user can access the diary, false otherwise.</returns>
+        private async Task<bool> CanUserAccessDiary(Diary diary, Profile profile)
+        {
+            var currentUser = _userContext.CurrentUserProfile;
+            
+            // If profile has private diaryVisibility, only the owner can access
+            if (profile.DiaryVisibility == "private")
+            {
+                return currentUser?.Id == profile.Id;
+            }
+
+            // Profile allows diary visibility, check individual diary rules
+            switch (diary.Visibility)
+            {
+                case "public":
+                    return true; // Public diaries are accessible to everyone
+
+                case "friends-only":
+                    if (currentUser == null)
+                    {
+                        return false; // Unauthenticated users can't see friends-only diaries
+                    }
+                    
+                    if (currentUser.Id == profile.Id)
+                    {
+                        return true; // Owner can always see their own diaries
+                    }
+
+                    // Check if current user is friends with the diary owner
+                    return await _friendsRepository.AreFriendsAsync(currentUser.Id, profile.Id);
+
+                case "private":
+                    // Private diaries are only accessible by the owner
+                    return currentUser?.Id == profile.Id;
+
+                default:
+                    return false; // Unknown visibility, deny access
+            }
         }
 
         /// <summary>
