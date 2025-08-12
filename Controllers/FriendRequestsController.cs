@@ -30,13 +30,17 @@ public class FriendRequestsController : ControllerBase
 
     [HttpGet("incoming")]
     [Authorize]
-    public async Task<ActionResult<List<FriendRequestDto>>> GetIncomingRequests()
+    public async Task<ActionResult<List<object>>> GetIncomingRequests()
     {
         try
         {
             int profileId = _userContext.CurrentUserProfile.Id;
-            var requests = await _friendRequestsRepository.GetIncomingRequestsAsync(profileId);
-            return Ok(requests);
+            var requests = await _friendRequestsRepository.GetIncomingRequestsWithProfileAsync(profileId);
+            var result = requests.Select(x => new {
+                request = x.Request,
+                profile = x.RequesterProfile
+            });
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -47,13 +51,17 @@ public class FriendRequestsController : ControllerBase
 
     [HttpGet("outgoing")]
     [Authorize]
-    public async Task<ActionResult<List<FriendRequestDto>>> GetOutgoingRequests()
+    public async Task<ActionResult<List<object>>> GetOutgoingRequests()
     {
         try
         {
             int profileId = _userContext.CurrentUserProfile.Id;
-            var requests = await _friendRequestsRepository.GetOutgoingRequestsAsync(profileId);
-            return Ok(requests);
+            var requests = await _friendRequestsRepository.GetOutgoingRequestsWithProfileAsync(profileId);
+            var result = requests.Select(x => new {
+                request = x.Request,
+                profile = x.RequestedProfile
+            });
+            return Ok(result);
         }
         catch (Exception ex)
         {

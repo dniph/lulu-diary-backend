@@ -18,14 +18,15 @@ public class FriendRequestsRepository
         _friendsRepository = friendsRepository;
     }
 
-    public async Task<List<FriendRequest>> GetIncomingRequestsAsync(int profileId)
+    public async Task<List<(FriendRequest Request, Profile RequesterProfile)>> GetIncomingRequestsWithProfileAsync(int profileId)
     {
         try
         {
-            // TODO: Add authentication middleware check here
             return await _context.FriendRequests
                 .Where(fr => fr.RequestedProfileId == profileId && fr.Status == "pending")
-                .OrderByDescending(fr => fr.CreatedAt)
+                .Join(_context.Profiles, fr => fr.RequesterProfileId, p => p.Id, (fr, p) => new { Request = fr, Profile = p })
+                .OrderByDescending(x => x.Request.CreatedAt)
+                .Select(x => new ValueTuple<FriendRequest, Profile>(x.Request, x.Profile))
                 .ToListAsync();
         }
         catch (Exception ex)
@@ -35,14 +36,15 @@ public class FriendRequestsRepository
         }
     }
 
-    public async Task<List<FriendRequest>> GetOutgoingRequestsAsync(int profileId)
+    public async Task<List<(FriendRequest Request, Profile RequestedProfile)>> GetOutgoingRequestsWithProfileAsync(int profileId)
     {
         try
         {
-            // TODO: Add authentication middleware check here
             return await _context.FriendRequests
                 .Where(fr => fr.RequesterProfileId == profileId && fr.Status == "pending")
-                .OrderByDescending(fr => fr.CreatedAt)
+                .Join(_context.Profiles, fr => fr.RequestedProfileId, p => p.Id, (fr, p) => new { Request = fr, Profile = p })
+                .OrderByDescending(x => x.Request.CreatedAt)
+                .Select(x => new ValueTuple<FriendRequest, Profile>(x.Request, x.Profile))
                 .ToListAsync();
         }
         catch (Exception ex)
