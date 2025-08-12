@@ -58,7 +58,7 @@ namespace lulu_diary_backend.Controllers
 
             try
             {
-                IList<Diary> diaries;
+                IList<(Diary Diary, Profile Profile)> diaryProfiles;
                 int? totalCount = null;
                 bool isAuthenticated = _userContext.CurrentUserProfile != null;
 
@@ -66,8 +66,7 @@ namespace lulu_diary_backend.Controllers
                 {
                     // Authenticated user: public + friends-only from friends + private from own profile
                     var currentProfileId = _userContext.CurrentUserProfile!.Id;
-                    diaries = await _diariesRepository.GetFeedDiariesAsync(currentProfileId, limit, offset);
-                    
+                    diaryProfiles = await _diariesRepository.GetFeedDiariesWithProfilesAsync(currentProfileId, limit, offset);
                     if (includeCount)
                     {
                         totalCount = await _diariesRepository.GetFeedDiariesCountAsync(currentProfileId);
@@ -76,8 +75,7 @@ namespace lulu_diary_backend.Controllers
                 else
                 {
                     // Unauthenticated user: only public diaries
-                    diaries = await _diariesRepository.GetPublicDiariesAsync(limit, offset);
-                    
+                    diaryProfiles = await _diariesRepository.GetPublicDiariesWithProfilesAsync(limit, offset);
                     if (includeCount)
                     {
                         totalCount = await _diariesRepository.GetPublicDiariesCountAsync();
@@ -86,12 +84,15 @@ namespace lulu_diary_backend.Controllers
 
                 var response = new
                 {
-                    data = diaries,
+                    data = diaryProfiles.Select(dp => new {
+                        diary = dp.Diary,
+                        profile = dp.Profile
+                    }),
                     pagination = new
                     {
                         limit,
                         offset,
-                        count = diaries.Count,
+                        count = diaryProfiles.Count,
                         totalCount = includeCount ? totalCount : null
                     },
                     meta = new

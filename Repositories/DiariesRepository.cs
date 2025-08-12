@@ -161,7 +161,7 @@ namespace lulu_diary_backend.Repositories
         /// <param name="limit">Maximum number of diaries to return.</param>
         /// <param name="offset">Number of diaries to skip for pagination.</param>
         /// <returns>List of public diaries ordered by creation date (newest first).</returns>
-        public async Task<IList<Diary>> GetPublicDiariesAsync(int limit, int offset)
+        public async Task<IList<(Diary Diary, Profile Profile)>> GetPublicDiariesWithProfilesAsync(int limit, int offset)
         {
             return await _context.Diaries
                 .Join(_context.Profiles, d => d.ProfileId, p => p.Id, (d, p) => new { Diary = d, Profile = p })
@@ -169,10 +169,10 @@ namespace lulu_diary_backend.Repositories
                     dp.Diary.Visibility == "public" &&           // Diary itself is public
                     dp.Profile.DiaryVisibility == "public"       // Profile allows public diary visibility
                 )
-                .Select(dp => dp.Diary)
-                .OrderByDescending(d => d.CreatedAt)
+                .OrderByDescending(dp => dp.Diary.CreatedAt)
                 .Skip(offset)
                 .Take(limit)
+                .Select(dp => new ValueTuple<Diary, Profile>(dp.Diary, dp.Profile))
                 .ToListAsync();
         }
 
@@ -188,7 +188,7 @@ namespace lulu_diary_backend.Repositories
         /// <param name="limit">Maximum number of diaries to return.</param>
         /// <param name="offset">Number of diaries to skip for pagination.</param>
         /// <returns>List of diaries for the personalized feed ordered by creation date (newest first).</returns>
-        public async Task<IList<Diary>> GetFeedDiariesAsync(int currentProfileId, int limit, int offset)
+        public async Task<IList<(Diary Diary, Profile Profile)>> GetFeedDiariesWithProfilesAsync(int currentProfileId, int limit, int offset)
         {
             // Get friend profile IDs
             var friendships = await _context.Friends
@@ -205,21 +205,19 @@ namespace lulu_diary_backend.Repositories
                 .Where(dp =>
                     // Public diaries from profiles with public diaryVisibility
                     (dp.Diary.Visibility == "public" && dp.Profile.DiaryVisibility == "public") ||
-                    
                     // Friends-only diaries from friends (if their profile allows diary visibility)
                     (dp.Diary.Visibility == "friends-only" && 
                      friendProfileIds.Contains(dp.Diary.ProfileId) && 
                      dp.Profile.DiaryVisibility == "public") ||
-                    
                     // Private diaries from own profile (always allowed regardless of profile diaryVisibility)
                     (dp.Diary.Visibility == "private" && dp.Diary.ProfileId == currentProfileId)
-                )
-                .Select(dp => dp.Diary);
+                );
 
             return await query
-                .OrderByDescending(d => d.CreatedAt)
+                .OrderByDescending(dp => dp.Diary.CreatedAt)
                 .Skip(offset)
                 .Take(limit)
+                .Select(dp => new ValueTuple<Diary, Profile>(dp.Diary, dp.Profile))
                 .ToListAsync();
         }
 
