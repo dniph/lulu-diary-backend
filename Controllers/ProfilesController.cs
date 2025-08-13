@@ -68,13 +68,20 @@ namespace lulu_diary_backend.Controllers
                 return Forbid();
             }
 
-            var updatedProfile = await _repository.UpdateProfileAsync(username, profile);
-            if (updatedProfile == null)
+            try
             {
-                return NotFound();
-            }
+                var updatedProfile = await _repository.UpdateProfileAsync(username, profile);
+                if (updatedProfile == null)
+                {
+                    return NotFound();
+                }
 
-            return Ok(updatedProfile);
+                return Ok(updatedProfile);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
     }
 }

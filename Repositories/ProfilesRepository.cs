@@ -73,6 +73,17 @@ namespace lulu_diary_backend.Repositories
             }
 
             // Update only the provided fields
+            if (dto.Username != null && dto.Username != existingProfile.Username)
+            {
+                var usernameExists = await _context.Profiles.AnyAsync(p => p.Username == dto.Username);
+                if (usernameExists)
+                {
+                    _logger.LogWarning("Username {Username} already exists.", dto.Username);
+                    throw new InvalidOperationException("Username already exists.");
+                }
+                existingProfile.Username = dto.Username;
+            }
+
             if (dto.DisplayName != null)
             {
                 existingProfile.DisplayName = dto.DisplayName;
