@@ -27,11 +27,13 @@ namespace lulu_diary_backend.Repositories
         /// </summary>
         /// <param name="diaryId">Diary ID.</param>
         /// <returns>List of comments for the diary ordered by creation time.</returns>
-        public async Task<IList<Comment>> GetCommentsByDiaryAsync(int diaryId)
+        public async Task<IList<(Comment Comment, Profile Profile)>> GetCommentsByDiaryAsync(int diaryId)
         {
             return await _context.Comments
-                .Where(c => c.DiaryId == diaryId)
-                .OrderBy(c => c.CreatedAt)
+                .Join(_context.Profiles, c => c.ProfileId, p => p.Id, (c, p) => new { Comment = c, Profile = p})
+                .Where(c => c.Comment.DiaryId == diaryId)
+                .OrderBy(c => c.Comment.CreatedAt)
+                .Select(cp => new ValueTuple<Comment, Profile>(cp.Comment, cp.Profile))
                 .ToListAsync();
         }
 

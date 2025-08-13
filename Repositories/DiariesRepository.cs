@@ -209,6 +209,9 @@ namespace lulu_diary_backend.Repositories
                     (dp.Diary.Visibility == "friends-only" && 
                      friendProfileIds.Contains(dp.Diary.ProfileId) && 
                      dp.Profile.DiaryVisibility == "public") ||
+                     // Self friend-only diaries
+                     (dp.Diary.Visibility == "friends-only" &&
+                     dp.Profile.Id == currentProfileId) ||
                     // Private diaries from own profile (always allowed regardless of profile diaryVisibility)
                     (dp.Diary.Visibility == "private" && dp.Diary.ProfileId == currentProfileId)
                 );

@@ -105,8 +105,15 @@ namespace lulu_diary_backend.Controllers
                 return NotFound(new { message = "Diary not found." });
             }
 
-            var results = await _repository.GetCommentsByDiaryAsync(diaryId);
-            return Ok(results);
+                var results = await _repository.GetCommentsByDiaryAsync(diaryId);
+            var response = new
+                {
+                    data = results.Select(r => new {
+                        comment = r.Comment,
+                        profile = r.Profile
+                    }),
+                };
+            return Ok(response);
         }
 
         /// <summary>
