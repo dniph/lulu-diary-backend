@@ -15,13 +15,17 @@ public class FriendsRepository
         _logger = logger;
     }
 
-    public async Task<List<Friend>> GetFriendsByProfileIdAsync(int profileId)
+    public async Task<List<Profile>> GetFriendsByProfileIdAsync(int profileId)
     {
         try
         {
-            // TODO: Add authentication middleware check here
-            return await _context.Friends
+            var friendProfileIds = await _context.Friends
                 .Where(f => f.ProfileAId == profileId || f.ProfileBId == profileId)
+                .Select(f => f.ProfileAId == profileId ? f.ProfileBId : f.ProfileAId)
+                .ToListAsync();
+
+            return await _context.Profiles
+                .Where(p => friendProfileIds.Contains(p.Id))
                 .ToListAsync();
         }
         catch (Exception ex)

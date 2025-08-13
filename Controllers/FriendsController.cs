@@ -21,7 +21,7 @@ public class FriendsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<FriendDto>>> GetFriends(string username)
+    public async Task<ActionResult<List<ProfileDto>>> GetFriends(string username)
     {
         try
         {
@@ -33,10 +33,12 @@ public class FriendsController : ControllerBase
             }
 
             var friends = await _friendsRepository.GetFriendsByProfileIdAsync(profile.Id);
-            var friendDtos = friends.Select(f => new FriendDto
+            var friendDtos = friends.Select(p => new ProfileDto
             {
-                ProfileAId = f.ProfileAId,
-                ProfileBId = f.ProfileBId
+                Username = p.Username,
+                DisplayName = p.DisplayName,
+                AvatarUrl = p.AvatarUrl,
+                DiaryVisibility = p.DiaryVisibility
             }).ToList();
 
             return Ok(friendDtos);
